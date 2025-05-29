@@ -2,9 +2,13 @@ import React from 'react'
 
 const Header = () => {
   return (
-    <div className="w-screen flex justify-around items-center bg-amber-400 h-14 text-white p-8:">
-      <div>Expense Tracker</div>
-      <div>Sign In</div>
+    <div className="bg-neutral-900 text-white flex justify-between p-6">
+      <div className="text-2xl font-bold">Dashboard</div>
+
+
+      <button className="bg-emerald-500 hover:bg-emerald-900 text-white font-bold py-2 px-4 rounded">
+        sign out
+      </button>
     </div>
   )
 }

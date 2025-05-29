@@ -15,11 +15,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <Header/>
-        <div className="flex">
-          <SideBar/>
-          {children}
+      <body className="flex h-screen w-screen">
+        {/* Sidebar */}
+        <SideBar />
+        {/* Main Content */}
+        <div className="h-full w-full bg-black">
+          <Header/>
+            <main>
+            {children}
+            </main>
         </div>
       </body>
     </html>
