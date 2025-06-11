@@ -1,4 +1,4 @@
-import  { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Document, Types } from 'mongoose';
 
 export interface IExpense extends Document {
     title: string;
@@ -6,7 +6,8 @@ export interface IExpense extends Document {
     category: string;
     dueDate: Date;
     notes?: string;
-    createdAt: Date
+    createdAt: Date;
+    user: Types.ObjectId | string; // Reference to the user who owns this expense
 }
 
 const expenseSchema: Schema = new Schema({
@@ -15,7 +16,8 @@ const expenseSchema: Schema = new Schema({
     category: { type: String, required: true },
     dueDate: { type: Date, required: false },
     notes: { type: String },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true } // Reference to User document
 });
 
 // Use existing model if it exists, otherwise create a new one
