@@ -6,25 +6,27 @@ import { UserCircle, Save, X } from 'lucide-react';
 export default function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [user, setUser] = useState({
-    name: "Alex Johnson",
+    _id: "",
+    firstName: "Hello",
+    lastName: "World",
     address: "123 Main Street, Apt 4B, New York, NY 10001",
-    phone: "(555) 123-4567",
+    phoneNumber: "(555) 123-4567",
     monthlyIncome: "$5,200"
   });
   
   const [editableUser, setEditableUser] = useState({...user});
 
-  // In a real app, you would fetch user data here
   useEffect(() => {
-    // Example fetch call
-    // const fetchUserData = async () => {
-    //   const response = await fetch('/api/user');
-    //   const data = await response.json();
-    //   setUser(data);
-    //   setEditableUser(data);
-    // };
-    // fetchUserData();
+    fetchUserData();
   }, []);
+
+  const fetchUserData = async () => {
+    const response = await fetch('/api/user');
+    console.log(response)
+    const data = await response.json();
+    setUser(data.user);
+    setEditableUser(data.user);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,18 +37,15 @@ export default function UserProfile() {
   };
 
   const handleSave = () => {
-    // In a real app, you would save to backend here
     setUser(editableUser);
     setIsEditing(false);
-    
-    // Example API call
-    // const saveData = async () => {
-    //   await fetch('/api/user', {
-    //     method: 'PUT',
-    //     body: JSON.stringify(editableUser)
-    //   });
-    // };
-    // saveData();
+    saveData();
+  };
+  const saveData = async () => {
+    await fetch('/api/user', {
+      method: 'PUT',
+      body: JSON.stringify({_id: user._id, ...editableUser})
+    });
   };
 
   const handleCancel = () => {
@@ -65,15 +64,26 @@ export default function UserProfile() {
             </div>
             <div>
               {isEditing ? (
-                <input
-                  type="text"
-                  name="name"
-                  value={editableUser.name}
-                  onChange={handleInputChange}
-                  className="text-2xl font-bold bg-white/10 text-white rounded px-2 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
+                <>
+                  <input
+                    type="text"
+                    name="firstName"
+                    placeholder='enter first name'
+                    value={editableUser.firstName}
+                    onChange={handleInputChange}
+                    className="text-2xl font-bold bg-white/10 text-white rounded px-2 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  />
+                  <input
+                    type="text"
+                    name="lastName"
+                    placeholder='enter last name'
+                    value={editableUser.lastName}
+                    onChange={handleInputChange}
+                    className="text-2xl font-bold bg-white/10 text-white rounded px-2 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 ml-2"
+                  />
+                </>
               ) : (
-                <h1 className="text-2xl font-bold text-white">{user.name}</h1>
+                <h1 className="text-2xl font-bold text-white">{`${user.firstName} ${user.lastName}`}</h1>
               )}
               <p className="text-blue-100">User Profile</p>
             </div>
@@ -90,6 +100,7 @@ export default function UserProfile() {
                   <input
                     type="text"
                     name="address"
+                    placeholder='enter address'
                     value={editableUser.address}
                     onChange={handleInputChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 px-2 py-1"
@@ -104,13 +115,14 @@ export default function UserProfile() {
                 {isEditing ? (
                   <input
                     type="text"
-                    name="phone"
-                    value={editableUser.phone}
+                    name="phoneNumber"
+                    placeholder='enter phone number'
+                    value={editableUser.phoneNumber}
                     onChange={handleInputChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 px-2 py-1"
                   />
                 ) : (
-                  <p className="mt-1 text-gray-900 dark:text-white">{user.phone}</p>
+                  <p className="mt-1 text-gray-900 dark:text-white">{user.phoneNumber}</p>
                 )}
               </div>
             </div>
@@ -122,6 +134,7 @@ export default function UserProfile() {
                   <input
                     type="text"
                     name="monthlyIncome"
+                    placeholder='enter monthly income'
                     value={editableUser.monthlyIncome}
                     onChange={handleInputChange}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 px-2 py-1"

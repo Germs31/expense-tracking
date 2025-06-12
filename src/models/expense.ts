@@ -10,7 +10,7 @@ export interface IExpense extends Document {
     user: Types.ObjectId | string; // Reference to the user who owns this expense
 }
 
-const expenseSchema: Schema = new Schema({
+const expenseSchema: Schema<IExpense> = new Schema({
     title: { type: String, required: true },
     amount: { type: Number, required: true },
     category: { type: String, required: true },
@@ -21,6 +21,6 @@ const expenseSchema: Schema = new Schema({
 });
 
 // Use existing model if it exists, otherwise create a new one
-const Expense = models.Expense || model('Expense', expenseSchema);
+const Expense = models.Expense || model<IExpense>('Expense', expenseSchema);
 
 export default Expense;

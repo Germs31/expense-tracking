@@ -7,20 +7,22 @@ export interface IUser extends Document {
     address: string;
     createdAt: Date;
     lastUpdated: Date;
+    monthlyIncome: string;
     expenses: Types.ObjectId[] | string[]; // Reference to expenses
 }
 
-const userSchema: Schema = new Schema({
+const userSchema: Schema<IUser> = new Schema({
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     address: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
     lastUpdated: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now },
-    expenses: [{ type: Schema.Types.ObjectId, ref: 'Expense' }] // Array of references to Expense documents
+    monthlyIncome: { type: String, required: true },
+    expenses: [{ type: Schema.Types.ObjectId, ref: 'Expense', required: true}] // Array of references to Expense documents
 });
 
 // Use existing model if it exists, otherwise create a new one
-const User = models.User || model('User', userSchema);
+const User = models.User || model<IUser>('User', userSchema);
 
 export default User;
