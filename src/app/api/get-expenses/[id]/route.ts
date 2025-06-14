@@ -64,7 +64,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
 
     console.log(body, '<-----')
-    const { title, amount, category, dueDate, notes } = body;
+    const { title, amount, category, dueDate, notes, minimumPayment } = body;
     
     // Validate required fields
     if (!title || !amount || !category) {
@@ -83,6 +83,7 @@ export async function PUT(req: NextRequest) {
         category,
         dueDate,
         notes,
+        minimumPayment, // Add minimumPayment field
       },
       { new: true } // Return the updated document
     );

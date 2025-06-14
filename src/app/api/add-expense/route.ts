@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, amount, category, dueDate, notes } = body;
+    const { title, amount, category, dueDate, notes, minimumPayment } = body;
 
     if (!title || !amount || !category) {
       return NextResponse.json(
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const newExpense = await Expense.create({
       title,
       amount,
+      minimumPayment, // Add minimumPayment field
       category,
       dueDate,
       notes,

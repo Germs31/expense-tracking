@@ -9,7 +9,7 @@ export async function GET() {
     
     // Find the first/only user in the system
     const singleUser = await User.findOne();
-    
+    console.log(singleUser, '<----')
     if (!singleUser) {
       return NextResponse.json(
         { error: 'No user found in the system' },
