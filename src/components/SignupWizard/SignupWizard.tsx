@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Stepper from '../Stepper/Stepper';
+import { signIn } from 'next-auth/react';
 
 interface SignupWizardProps {
   onComplete: () => void;
@@ -13,14 +14,44 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
     phoneNumber: '',
     address: '',
     monthlyIncome: '',
-    monthlyIncomeValue: 0
+    monthlyIncomeValue: 0,
+    email: '', // Added for password step
+    password: '', // Added for password step
+    confirmPassword: '' // Added for password step
   });
   const [error, setError] = useState<string | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number;
+    feedback: string[];
+  }>({ score: 0, feedback: [] });
 
-  const steps = ["Basic Info", "Contact Details", "Confirmation"];
+  // Expanded steps to include password creation
+  const steps = ["Basic Info", "Password", "Contact Details", "Confirmation"];
+
+  // Password validation rules
+  const validatePassword = (password: string) => {
+    const minLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    const feedback = [];
+    if (!minLength) feedback.push("Password must be at least 8 characters long");
+    if (!hasUpperCase) feedback.push("Include at least one uppercase letter");
+    if (!hasLowerCase) feedback.push("Include at least one lowercase letter");
+    if (!hasNumbers) feedback.push("Include at least one number");
+    if (!hasSpecialChar) feedback.push("Include at least one special character");
+    
+    // Calculate password strength score (0-4)
+    const valid = [minLength, hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean);
+    const score = valid.length - 1; // 0-4 scale
+    
+    return { score, feedback };
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
+    const { name, value } = e.target;
     
     if (name === 'monthlyIncome') {
       // Only allow numeric input (digits and decimal point)
@@ -37,6 +68,11 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
         // Store as number in state for submission
         monthlyIncomeValue: parseFloat(formattedValue) || 0
       }));
+    } else if (name === 'password') {
+      // Check password strength when password changes
+      const strength = validatePassword(value);
+      setPasswordStrength(strength);
+      setUserData(prev => ({ ...prev, [name]: value }));
     } else {
       setUserData(prev => ({
         ...prev,
@@ -46,6 +82,22 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
   };
 
   const handleNext = () => {
+    setError(null);
+    
+    // Validate based on current step
+    if (currentStep === 1) {
+      // Password validation
+      if (userData.password !== userData.confirmPassword) {
+        setError("Passwords don't match");
+        return;
+      }
+      
+      if (passwordStrength.score < 2) {
+        setError("Please create a stronger password");
+        return;
+      }
+    }
+    
     if (currentStep < steps.length - 1) {
       setCurrentStep(curr => curr + 1);
     }
@@ -61,30 +113,33 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
     e.preventDefault();
     setError(null);
     
-    // Create submission data with proper numeric value
-    const submissionData = {
-      ...userData,
-      monthlyIncome: parseFloat(userData.monthlyIncome) || 0
-    };
-    
     try {
-      const response = await fetch('/api/user', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submissionData)
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: userData.email.toLowerCase(),
+        password: userData.password,
+        isRegistering: true, // Flag to indicate registration
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phoneNumber: userData.phoneNumber,
+        address: userData.address,
+        monthlyIncome: userData.monthlyIncome,
+        callbackUrl: '/'
       });
 
-      const result = await response.json();
+      console.log('Auth result:', result);
 
-      if (response.ok) {
-        onComplete();
-      } else {
-        console.error('Failed to save user data:', result);
-        setError(result.error || 'Failed to save user data');
+      if (result?.error) {
+        throw new Error(result.error);
       }
+
+      if (result?.ok) {
+        onComplete();
+      }
+
     } catch (error) {
-      console.error('Error saving user data:', error);
-      setError('An unexpected error occurred');
+      console.error('Registration/auth error:', error);
+      setError(error.message || 'An error occurred');
     }
   };
 
@@ -118,9 +173,106 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-white">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={userData.email}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded bg-neutral-700 text-white border-neutral-600 focus:ring focus:ring-emerald-500"
+                required
+              />
+            </div>
           </div>
         );
-      case 1:
+      case 1: // New Password step
+        return (
+          <div className="space-y-4">
+            <h3 className="text-xl font-medium text-white">Create Password</h3>
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-medium text-white">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={userData.password}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded bg-neutral-700 text-white border-neutral-600 focus:ring focus:ring-emerald-500"
+                required
+              />
+            </div>
+            
+            {/* Password strength indicator */}
+            <div className="mt-2">
+              <div className="flex space-x-1">
+                {[1, 2, 3, 4].map((level) => (
+                  <div 
+                    key={level}
+                    className={`h-2 flex-1 rounded ${
+                      passwordStrength.score >= level 
+                        ? level <= 1 
+                          ? 'bg-red-500' 
+                          : level <= 2 
+                            ? 'bg-yellow-500' 
+                            : level <= 3 
+                              ? 'bg-emerald-500' 
+                              : 'bg-emerald-500'
+                        : 'bg-neutral-600'
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs mt-1 text-neutral-400">
+                {passwordStrength.score === 0 && "Very weak"}
+                {passwordStrength.score === 1 && "Weak"}
+                {passwordStrength.score === 2 && "Fair"}
+                {passwordStrength.score === 3 && "Strong"}
+                {passwordStrength.score === 4 && "Very strong"}
+              </p>
+            </div>
+            
+            {/* Password feedback tips */}
+            {passwordStrength.feedback.length > 0 && (
+              <div className="mt-2 p-3 bg-neutral-700 rounded-lg">
+                <p className="text-sm text-white mb-1">Password requirements:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {passwordStrength.feedback.map((tip, i) => (
+                    <li key={i} className="text-xs text-neutral-400">{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-white">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={userData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full p-2 border rounded bg-neutral-700 text-white border-neutral-600 focus:ring focus:ring-emerald-500"
+                required
+              />
+            </div>
+            
+            {/* Password match indicator */}
+            {userData.password && userData.confirmPassword && (
+              <p className={`text-sm ${
+                userData.password === userData.confirmPassword
+                  ? 'text-emerald-500'
+                  : 'text-red-500'
+              }`}>
+                {userData.password === userData.confirmPassword
+                  ? '✓ Passwords match'
+                  : '✗ Passwords don\'t match'}
+              </p>
+            )}
+          </div>
+        );
+      case 2:
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-medium text-white">Contact Details</h3>
@@ -178,15 +330,17 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
             </div>
           </div>
         );
-      case 2:
+      case 3:
         return (
           <div className="space-y-4">
             <h3 className="text-xl font-medium text-white">Confirm Your Information</h3>
             <div className="p-4 bg-neutral-700 rounded-lg text-white">
               <p><span className="font-bold">Name:</span> {userData.firstName} {userData.lastName}</p>
+              <p><span className="font-bold">Email:</span> {userData.email}</p>
               <p><span className="font-bold">Phone:</span> {userData.phoneNumber}</p>
               <p><span className="font-bold">Address:</span> {userData.address}</p>
               <p><span className="font-bold">Monthly Income:</span> ${parseFloat(userData.monthlyIncome).toFixed(2)}</p>
+              <p><span className="font-bold">Password:</span> ••••••••</p>
             </div>
           </div>
         );
@@ -198,6 +352,15 @@ const SignupWizard: React.FC<SignupWizardProps> = ({ onComplete }) => {
   return (
     <div className="max-w-lg mx-auto bg-neutral-800 p-6 rounded-lg shadow-md border border-neutral-700">
       <h2 className="text-2xl font-bold text-center mb-6 text-white">Welcome to Expense Tracker</h2>
+      
+      <div className="bg-amber-900/50 border border-amber-500 text-white p-3 rounded mb-6">
+        <p className="text-sm">
+          <strong>Disclaimer:</strong> This is a portfolio project to demonstrate my development skills. 
+          Please do not enter sensitive or real personal information as this application is for 
+          demonstration purposes only.
+        </p>
+      </div>
+      
       <Stepper steps={steps} currentStep={currentStep} />
       
       {error && (

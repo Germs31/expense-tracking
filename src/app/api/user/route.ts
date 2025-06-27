@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import User from '@/models/user';
 import connectDB from '@/db/mongodb';
+import bcrypt from 'bcryptjs';
 
 export async function GET() {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await connectDB();
     console.log('Database connected successfully');
     
@@ -30,62 +40,86 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const userData = await request.json();
-    console.log('Received user data:', userData);
+    const headersList = await headers();
+    const isPublicRegistration = headersList.get('x-registration-type') === 'public';
     
-    // Ensure monthlyIncome is a number
-    if (userData.monthlyIncome === undefined) {
-      return NextResponse.json(
-        { error: 'Monthly income is required' },
-        { status: 400 }
-      );
-    }
-    
-    // Convert to number if it's not already
-    userData.monthlyIncome = typeof userData.monthlyIncome === 'number' 
-      ? userData.monthlyIncome 
-      : parseFloat(userData.monthlyIncome) || 0;
-    
-    await connectDB();
-    
-    // Find user or create if doesn't exist
-    let user = await User.findOne();
-    
-    try {
-      if (user) {
-        // Update existing user
-        user.firstName = userData.firstName;
-        user.lastName = userData.lastName;
-        user.phoneNumber = userData.phoneNumber;
-        user.address = userData.address;
-        user.monthlyIncome = userData.monthlyIncome;
-        user.lastUpdated = new Date();
-        await user.save();
-      } else {
-        // Create new user
-        user = await User.create({
-          ...userData,
-          createdAt: new Date(),
-          lastUpdated: new Date()
-        });
+    if (!isPublicRegistration) {
+      const session = await getServerSession(authOptions);
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      
-      return NextResponse.json(user);
-    } catch (validationError) {
-      console.error('Validation error:', validationError);
-      return NextResponse.json(
-        { 
-          error: 'Validation error', 
-          details: validationError.message || 'Unknown validation error' 
-        }, 
-        { status: 400 }
-      );
     }
+
+    let userData;
+    try {
+      userData = await request.json();
+    } catch (e) {
+      return NextResponse.json({ 
+        error: 'Invalid request data',
+        details: 'Could not parse request body' 
+      }, { status: 400 });
+    }
+
+    // Validate required fields
+    const requiredFields = ['firstName', 'lastName', 'email', 'password', 'monthlyIncome'];
+    const missingFields = requiredFields.filter(field => !userData[field]);
+    
+    if (missingFields.length > 0) {
+      return NextResponse.json({
+        error: `Missing required fields: ${missingFields.join(', ')}`
+      }, { status: 400 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) {
+      return NextResponse.json({
+        error: 'Invalid email format'
+      }, { status: 400 });
+    }
+
+    const userResponse = await createUser(userData);
+    return NextResponse.json(userResponse);
+
   } catch (error) {
-    console.error('Error updating user:', error);
-    return NextResponse.json(
-      { error: 'Error updating user', details: error.message || 'Unknown error' },
-      { status: 500 }
+    console.error('Error in PUT /api/user:', error);
+    return NextResponse.json({
+      error: error.message || 'Failed to create user account',
+      details: error.stack
+    }, { status: error.status || 500 });
+  }
+}
+
+async function createUser(userData) {
+  await connectDB();
+  
+  const existingUser = await User.findOne({ email: userData.email });
+  if (existingUser) {
+    throw Object.assign(
+      new Error('Email already registered'),
+      { status: 409 }
     );
   }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(userData.password, salt);
+
+  const newUser = await User.create({
+    ...userData,
+    email: userData.email.toLowerCase(),
+    password: hashedPassword,
+    createdAt: new Date(),
+    lastUpdated: new Date()
+  });
+
+  return {
+    _id: newUser._id,
+    firstName: newUser.firstName,
+    lastName: newUser.lastName,
+    email: newUser.email,
+    phoneNumber: newUser.phoneNumber,
+    address: newUser.address,
+    monthlyIncome: newUser.monthlyIncome,
+    createdAt: newUser.createdAt
+  };
 }

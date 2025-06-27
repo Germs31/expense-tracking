@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SideBar from '../Sidebar/SideBar';
 import Header from '../Header/Header';
@@ -14,9 +13,9 @@ const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({ children }) =
       <SideBar />
       
       {/* Main Content */}
-      <div className="h-full w-full bg-black">
+      <div className="h-full w-full flex flex-col bg-neutral-900">
         <Header />
-        <main>
+        <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>
       </div>

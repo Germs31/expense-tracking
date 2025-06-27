@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import AuthenticatedLayout from "@/components/Layout/AuthenticatedLayout";
 
 const AddExpensePage = () => {
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
-    minimumPayment: "", // Added minimumPayment field
+    minimumPayment: "",
     category: "credit card",
     dueDate: "",
     notes: "",
@@ -83,24 +82,26 @@ const AddExpensePage = () => {
               </div>
             </div>
 
-            {/* Minimum Payment */}
-            <div>
+            {/* Minimum Payment - only shows for credit cards */}
+            {formData.category === "credit card" && (
+              <div>
               <label htmlFor="minimumPayment" className="block text-sm font-medium mb-2">
                 Minimum Payment
               </label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-neutral-400">$</span>
                 <input
-                  type="number"
-                  id="minimumPayment"
-                  name="minimumPayment"
-                  value={formData.minimumPayment}
-                  onChange={handleChange}
-                  step="0.01"
-                  className="w-full pl-8 p-3 rounded-lg bg-neutral-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                type="number"
+                id="minimumPayment"
+                name="minimumPayment"
+                value={formData.minimumPayment}
+                onChange={handleChange}
+                step="0.01"
+                className="w-full pl-8 p-3 rounded-lg bg-neutral-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-            </div>
+              </div>
+            )}
 
             {/* Category */}
             <div>
@@ -120,6 +121,8 @@ const AddExpensePage = () => {
                 <option value="utility">Utility</option>
                 <option value="loan">Loan</option>
                 <option value="pets">Pets</option>
+                <option value="insurance">Insurance</option>
+                <option value="subscription">Subscription</option>
               </select>
             </div>
 
