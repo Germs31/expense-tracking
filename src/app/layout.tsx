@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-
+import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: "Active Expenses",
@@ -15,8 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-neutral-900">
-        {/* The page component will decide whether to show the signup wizard or the main layout */}
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

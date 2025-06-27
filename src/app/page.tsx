@@ -1,12 +1,10 @@
 "use client";
 
-import Card from "@/components/Card/Card"
-import SignupWizard from "@/components/SignupWizard/SignupWizard";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import AuthenticatedLayout from "@/components/Layout/AuthenticatedLayout";
-
-
+import Card from "@/components/Card/Card";
 
 interface Expense {
   _id: string;
@@ -19,45 +17,46 @@ interface Expense {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { status } = useSession();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasUser, setHasUser] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
   const [userData, setUserData] = useState(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const checkUserAndExpenses = async () => {
-      try {
-        // Check if user exists
-        const userResponse = await fetch("/api/user");
-        const userData = await userResponse.json();
-        
-        // Check if we have a valid user
-        const userExists = userData && !userData.error && !userData.message?.includes('not found');
-        setHasUser(userExists);
-        
-        if (userExists && userData.user) {
-          setUserData(userData.user);
-        }
-        
-        // Check if expenses exist
-        const expensesResponse = await fetch("/api/get-expenses");
-        if (expensesResponse.ok) {
-          const expensesData = await expensesResponse.json();
-          setExpenses(expensesData.expenses || []);
-        }
-      } catch (error) {
-        console.error("Error initializing app:", error);
-      } finally {
-        setIsLoading(false);
-        setIsInitializing(false);
-      }
-    };
+    // Redirect to register if not authenticated
+    if (status === "unauthenticated") {
+      router.push("/register");
+      return;
+    }
 
-    checkUserAndExpenses();
-  }, []);
+    // Only fetch data if authenticated
+    if (status === "authenticated") {
+      const fetchData = async () => {
+        try {
+          // Fetch user data
+          const userResponse = await fetch("/api/user");
+          const userData = await userResponse.json();
+          if (userData && userData.user) {
+            setUserData(userData.user);
+          }
+          
+          // Fetch expenses
+          const expensesResponse = await fetch("/api/get-expenses");
+          if (expensesResponse.ok) {
+            const expensesData = await expensesResponse.json();
+            setExpenses(expensesData.expenses || []);
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
+      fetchData();
+    }
+  }, [status, router]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -104,8 +103,8 @@ export default function Home() {
 
   const cardData = generateCardData();
 
-  // If still initializing, show loading spinner
-  if (isInitializing) {
+  // Show loading state while checking auth
+  if (status === "loading" || isLoading) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center">
         <div className="text-emerald-500 text-2xl">Loading...</div>
@@ -113,13 +112,9 @@ export default function Home() {
     );
   }
 
-  // If no user exists, show signup wizard outside of the layout
-  if (!hasUser) {
-    return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center px-4 py-10">
-        <SignupWizard onComplete={() => setHasUser(true)} />
-      </div>
-    );
+  // If not authenticated, don't render anything (will be redirected)
+  if (status === "unauthenticated") {
+    return null;
   }
 
   // Otherwise show normal content

@@ -5,23 +5,31 @@ export interface User {
   lastName: string;
   phoneNumber: string;
   address: string;
+  email: string; 
+  password: string;
   createdAt: Date;
   lastUpdated: Date;
-  monthlyIncome: string;
-  expenses: Types.ObjectId[] | string[]; // Reference to expenses
+  monthlyIncome: number;
+  expenses: Types.ObjectId[] | string[]; 
 }
 
-const schema = new mongoose.Schema<User>(
-  {
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
-    address: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now },
-    lastUpdated: { type: Date, default: Date.now },
-    monthlyIncome: { type: String, required: true },
-    expenses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Expense', required: true }] // Array of references to Expense documents
-  }
-);
+const userSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { 
+    type: String, 
+    required: true,
+    unique: true,
+    lowercase: true
+  },
+  password: { type: String, required: true },
+  phoneNumber: String,
+  address: String,
+  monthlyIncome: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now },
+  lastUpdated: { type: Date, default: Date.now }
+});
 
-export default (mongoose.models.User as mongoose.Model<User>) || mongoose.model<User>('User', schema);
+// Remove any explicit index() calls since we're using unique: true
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+export default User;

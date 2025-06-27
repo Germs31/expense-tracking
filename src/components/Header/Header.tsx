@@ -1,16 +1,15 @@
 import React from 'react'
+import LogoutButton from './LogoutButton';
 
 const Header = () => {
   return (
-    <div className="bg-neutral-900 text-white flex justify-between p-6">
-      <div className="text-2xl font-bold">Dashboard</div>
-
-
-      <button className="bg-emerald-500 hover:bg-emerald-900 text-white font-bold py-2 px-4 rounded">
-        sign out
-      </button>
-    </div>
-  )
-}
+    <header className="bg-neutral-800 border-b border-neutral-700 p-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold text-white">Expense Tracker</h1>
+        <LogoutButton />
+      </div>
+    </header>
+  );
+};
 
 export default Header

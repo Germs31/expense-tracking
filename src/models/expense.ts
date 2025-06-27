@@ -15,12 +15,12 @@ const schema = new mongoose.Schema<Expense>(
   {
     title: { type: String, required: true },
     amount: { type: Number, required: true },
-    minimumPayment: { type: Number, required: false }, // Added to schema
+    minimumPayment: { type: Number, required: false },
     category: { type: String, required: true },
     dueDate: { type: Date, required: false },
     notes: { type: String },
     createdAt: { type: Date, default: Date.now },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true } // Reference to User document
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   }
 );
 
